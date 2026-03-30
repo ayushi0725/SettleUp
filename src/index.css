@@ -1,0 +1,89 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", "Poppins", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-brand: #0f172a;
+  --color-accent: #3b82f6;
+  --color-primary-start: #3b82f6;
+  --color-primary-end: #8b5cf6;
+  --color-surface: #ffffff;
+  --color-background: #f8fafc;
+  
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
+  --radius-4xl: 2.5rem;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-brand antialiased selection:bg-accent/10 selection:text-accent;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+  
+  h1, h2, h3, h4 {
+    @apply font-display tracking-tight font-bold;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)];
+  }
+  
+  .glass-dark {
+    @apply bg-slate-900/70 backdrop-blur-xl border border-slate-800/40 shadow-[0_8px_32px_0_rgba(0,0,0,0.2)];
+  }
+
+  .premium-gradient {
+    @apply bg-gradient-to-br from-primary-start to-primary-end;
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-br from-primary-start to-primary-end bg-clip-text text-transparent;
+  }
+  
+  .card-shadow {
+    @apply shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/50;
+  }
+  
+  .card-hover {
+    @apply hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1.5 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)];
+  }
+
+  .input-focus {
+    @apply focus:ring-4 focus:ring-accent/10 focus:border-accent outline-none transition-all duration-300;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+  }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out forwards;
+}

@@ -1,0 +1,106 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Display name" },
+        "email": { "type": "string", "format": "email", "description": "User email" },
+        "avatar_url": { "type": "string", "description": "Profile picture URL" },
+        "currency_pref": { "type": "string", "description": "Preferred currency (e.g., INR, USD)" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "created_at"]
+    },
+    "Group": {
+      "title": "Group",
+      "description": "Expense sharing group",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Group name" },
+        "description": { "type": "string", "description": "Group description" },
+        "avatar_url": { "type": "string", "description": "Group icon URL" },
+        "created_by": { "type": "string", "description": "User ID of creator" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "created_by", "created_at"]
+    },
+    "GroupMember": {
+      "title": "GroupMember",
+      "description": "Membership in a group",
+      "type": "object",
+      "properties": {
+        "group_id": { "type": "string", "description": "Group ID" },
+        "user_id": { "type": "string", "description": "User ID" },
+        "role": { "type": "string", "enum": ["admin", "member"], "description": "User role in group" },
+        "joined_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["group_id", "user_id", "role", "joined_at"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "An expense recorded in a group",
+      "type": "object",
+      "properties": {
+        "group_id": { "type": "string" },
+        "paid_by": { "type": "string", "description": "User ID who paid" },
+        "description": { "type": "string" },
+        "amount": { "type": "number" },
+        "currency": { "type": "string" },
+        "category": { "type": "string" },
+        "split_type": { "type": "string", "enum": ["equal", "custom", "percent", "shares"] },
+        "date": { "type": "string", "format": "date-time" },
+        "receipt_urls": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["group_id", "paid_by", "description", "amount", "split_type", "date"]
+    },
+    "ExpenseSplit": {
+      "title": "ExpenseSplit",
+      "description": "How an expense is divided among users",
+      "type": "object",
+      "properties": {
+        "expense_id": { "type": "string" },
+        "user_id": { "type": "string" },
+        "amount_owed": { "type": "number" },
+        "is_settled": { "type": "boolean" }
+      },
+      "required": ["expense_id", "user_id", "amount_owed", "is_settled"]
+    },
+    "Settlement": {
+      "title": "Settlement",
+      "description": "A payment between two users to settle debts",
+      "type": "object",
+      "properties": {
+        "group_id": { "type": "string" },
+        "payer_id": { "type": "string" },
+        "payee_id": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "confirmed"] },
+        "settled_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["group_id", "payer_id", "payee_id", "amount", "status"]
+    },
+    "SplitSet": {
+      "title": "SplitSet",
+      "description": "Saved subset of group members for splitting",
+      "type": "object",
+      "properties": {
+        "group_id": { "type": "string" },
+        "name": { "type": "string" },
+        "member_ids": { "type": "array", "items": { "type": "string" } },
+        "created_by": { "type": "string" }
+      },
+      "required": ["group_id", "name", "member_ids", "created_by"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": { "schema": "User", "description": "User profiles" },
+    "/groups/{groupId}": { "schema": "Group", "description": "Groups" },
+    "/group_members/{memberId}": { "schema": "GroupMember", "description": "Group members" },
+    "/groups/{groupId}/expenses/{expenseId}": { "schema": "Expense", "description": "Expenses in a group" },
+    "/groups/{groupId}/expenses/{expenseId}/splits/{splitId}": { "schema": "ExpenseSplit", "description": "Expense splits" },
+    "/groups/{groupId}/settlements/{settlementId}": { "schema": "Settlement", "description": "Settlements in a group" },
+    "/groups/{groupId}/split_sets/{splitSetId}": { "schema": "SplitSet", "description": "Saved split sets" }
+  }
+}

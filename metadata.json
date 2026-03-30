@@ -1,0 +1,5 @@
+{
+  "name": "Settleup",
+  "description": "A premium expense splitting app with AI-powered categorization and settlements.",
+  "requestFramePermissions": ["camera"]
+}

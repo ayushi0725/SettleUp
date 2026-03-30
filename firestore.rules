@@ -1,0 +1,88 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: users
+    // Fields: name (string), email (string), avatar_url (string), currency_pref (string), created_at (timestamp)
+    //
+    // Collection: groups
+    // Fields: name (string), description (string), avatar_url (string), created_by (string), created_at (timestamp)
+    //
+    // Collection: groups/{groupId}/members
+    // Fields: group_id (string), user_id (string), role (string), joined_at (timestamp)
+    //
+    // Collection: groups/{groupId}/expenses
+    // Fields: group_id (string), paid_by (string), description (string), amount (number), currency (string), category (string), split_type (string), date (timestamp), receipt_urls (list)
+    //
+    // Collection: groups/{groupId}/expenses/{expenseId}/splits
+    // Fields: expense_id (string), user_id (string), amount_owed (number), is_settled (bool)
+    //
+    // Collection: groups/{groupId}/settlements
+    // Fields: group_id (string), payer_id (string), payee_id (string), amount (number), status (string), settled_at (timestamp)
+    //
+    // Collection: groups/{groupId}/split_sets
+    // Fields: group_id (string), name (string), member_ids (list), created_by (string)
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    function isGroupMember(groupId) {
+      return isAuthenticated() && exists(/databases/$(database)/documents/group_members/$(groupId + "_" + request.auth.uid));
+    }
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email == "ayushinimcet2024@gmail.com" && request.auth.token.email_verified == true
+      );
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) && request.resource.data.keys().hasAll(['name', 'email', 'created_at']);
+      allow update: if isOwner(userId);
+    }
+
+    match /group_members/{memberId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Should be more strict in production
+    }
+
+    match /groups/{groupId} {
+      allow read: if isGroupMember(groupId) || isAdmin();
+      allow create: if isAuthenticated();
+      allow update: if isGroupMember(groupId) || isAdmin();
+      allow delete: if isAdmin();
+
+      match /expenses/{expenseId} {
+        allow read: if isGroupMember(groupId) || isAdmin();
+        allow write: if isGroupMember(groupId) || isAdmin();
+
+        match /splits/{splitId} {
+          allow read: if isGroupMember(groupId) || isAdmin();
+          allow write: if isGroupMember(groupId) || isAdmin();
+        }
+      }
+
+      match /settlements/{settlementId} {
+        allow read: if isGroupMember(groupId) || isAdmin();
+        allow write: if isGroupMember(groupId) || isAdmin();
+      }
+
+      match /split_sets/{splitSetId} {
+        allow read: if isGroupMember(groupId) || isAdmin();
+        allow write: if isGroupMember(groupId) || isAdmin();
+      }
+    }
+  }
+}
