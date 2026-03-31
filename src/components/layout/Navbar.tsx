@@ -42,7 +42,7 @@ export const Navbar: React.FC = () => {
                 className="w-12 h-12 rounded-xl overflow-hidden shadow-lg shadow-accent/20 bg-white border border-slate-100 flex items-center justify-center"
               >
                 <img 
-                  src="https://drive.google.com/uc?export=view&id=1yJTS9ilnt9-hqPMNLPy4yRQWNAwhzAV8" 
+                  src="logo.png" 
                   alt="Settleup Logo" 
                   className="w-full h-full object-contain p-1.5"
                   referrerPolicy="no-referrer"
