@@ -68,7 +68,7 @@ export const LoginForm: React.FC = () => {
         <div className="text-center mb-12">
           <div className="w-24 h-24 rounded-[32px] overflow-hidden mx-auto mb-6 shadow-2xl shadow-brand/20 border-4 border-white">
             <img 
-              src="public/logo.png" 
+              src="https://drive.google.com/file/d/1yJTS9ilnt9-hqPMNLPy4yRQWNAwhzAV8/view?usp=sharing" 
               alt="Settleup Logo" 
               className="w-full h-full object-contain p-2"
               referrerPolicy="no-referrer"
