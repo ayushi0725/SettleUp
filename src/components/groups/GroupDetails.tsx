@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useGroupDetails } from '../../hooks/useGroupDetails';
-import { Plus, Users, ArrowLeft, Receipt, Wallet, TrendingUp, TrendingDown, MoreVertical, Share2, Calculator, CheckCircle2, Sparkles, History, MessageSquare, X, Settings, Search, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { Plus, Users, ArrowLeft, Receipt, Wallet, TrendingUp, TrendingDown, MoreVertical, Share2, Calculator, CheckCircle2, Sparkles, History, MessageSquare, X, Settings, Search, ArrowUpRight, ArrowDownLeft, Lightbulb } from 'lucide-react';
 import { EditGroupModal } from './EditGroupModal';
-import { GoogleGenAI } from '@google/genai';
+import { aiService } from '../../services/aiService';
 import { toast } from 'sonner';
 import { AddExpenseModal } from '../expenses/AddExpenseModal';
 import { QRCodeSVG } from 'qrcode.react';
@@ -21,6 +21,8 @@ export const GroupDetails: React.FC = () => {
   const [showInviteQR, setShowInviteQR] = useState(false);
   const [isTripSummaryLoading, setTripSummaryLoading] = useState(false);
   const [tripSummary, setTripSummary] = useState<string | null>(null);
+  const [isInsightsLoading, setInsightsLoading] = useState(false);
+  const [insights, setInsights] = useState<string[]>([]);
   const [selectedSettlement, setSelectedSettlement] = useState<Transaction | null>(null);
   const [expenseSearchQuery, setExpenseSearchQuery] = useState('');
 
@@ -31,19 +33,32 @@ export const GroupDetails: React.FC = () => {
     }
     setTripSummaryLoading(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
-      const expensesText = group.expenses.map((e: any) => `- ${e.description}: ₹${e.amount} (${e.category})`).join('\n');
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `Generate a fun, concise summary of this trip based on these expenses:\n${expensesText}\nInclude who spent the most, what the main category was, and a funny "traveler personality" for the group.`,
-      });
-      setTripSummary(response.text || 'No summary generated.');
+      const summary = await aiService.generateGroupSummary(group.expenses, group.members);
+      setTripSummary(summary);
       toast.success('Trip summary generated!');
     } catch (error) {
       console.error(error);
       toast.error('Failed to generate summary.');
     } finally {
       setTripSummaryLoading(false);
+    }
+  };
+
+  const handleGenerateInsights = async () => {
+    if (!group?.expenses || group.expenses.length === 0) {
+      toast.error('No expenses for insights!');
+      return;
+    }
+    setInsightsLoading(true);
+    try {
+      const result = await aiService.generateSpendingInsights(group.expenses);
+      setInsights(result);
+      toast.success('Spending insights generated!');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to generate insights.');
+    } finally {
+      setInsightsLoading(false);
     }
   };
 
@@ -252,6 +267,16 @@ export const GroupDetails: React.FC = () => {
           <motion.button
             whileHover={{ scale: 1.02, translateY: -2 }}
             whileTap={{ scale: 0.98 }}
+            onClick={handleGenerateInsights}
+            disabled={isInsightsLoading}
+            className="flex items-center gap-3 bg-white border-2 border-slate-100 text-slate-700 font-black py-5 px-8 rounded-[28px] hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm disabled:opacity-50"
+          >
+            <Lightbulb className={`w-6 h-6 ${isInsightsLoading ? 'animate-spin' : 'text-blue-500'}`} />
+            Insights
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.02, translateY: -2 }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => setAddExpenseOpen(true)}
             className="group relative flex items-center gap-3 bg-brand text-white font-black py-5 px-10 rounded-[28px] transition-all shadow-2xl shadow-brand/20 overflow-hidden"
           >
@@ -283,6 +308,36 @@ export const GroupDetails: React.FC = () => {
             </div>
             <div className="prose prose-slate max-w-none text-slate-700 text-2xl leading-relaxed italic font-display opacity-90">
               {tripSummary}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {insights.length > 0 && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="bg-blue-50 p-12 rounded-[56px] border border-blue-100 shadow-2xl shadow-blue-100/20"
+          >
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-white rounded-[24px] flex items-center justify-center shadow-sm">
+                  <Lightbulb className="w-9 h-9 text-blue-500" />
+                </div>
+                <h3 className="text-3xl font-black text-brand tracking-tighter">Smart Spending Insights</h3>
+              </div>
+              <button onClick={() => setInsights([])} className="p-4 hover:bg-blue-100 rounded-[24px] text-blue-400 hover:text-blue-600 transition-all">
+                <X className="w-8 h-8" />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {insights.map((insight, idx) => (
+                <div key={idx} className="bg-white p-6 rounded-[32px] border border-blue-50 shadow-sm">
+                  <p className="text-slate-700 font-bold leading-relaxed">{insight}</p>
+                </div>
+              ))}
             </div>
           </motion.div>
         )}
@@ -579,6 +634,7 @@ export const GroupDetails: React.FC = () => {
           <AddExpenseModal 
             groupId={groupId!} 
             members={group.members} 
+            lastExpenses={group.expenses}
             onClose={() => setAddExpenseOpen(false)} 
           />
         )}

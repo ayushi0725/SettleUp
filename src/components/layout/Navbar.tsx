@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../../firebase';
 import { useStore } from '../../store/useStore';
-import { LogOut, Users, LayoutDashboard, Menu } from 'lucide-react';
+import { LogOut, Users, LayoutDashboard, Menu, User, Mail, ShieldCheck, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -10,6 +10,7 @@ export const Navbar: React.FC = () => {
   const { user } = useStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const [showProfile, setShowProfile] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -38,9 +39,17 @@ export const Navbar: React.FC = () => {
               <motion.div 
                 whileHover={{ rotate: 10, scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="w-12 h-12 bg-gradient-to-br from-primary-start to-primary-end rounded-2xl flex items-center justify-center text-white text-2xl font-black shadow-lg shadow-accent/20"
+                className="w-12 h-12 rounded-xl overflow-hidden shadow-lg shadow-accent/20 bg-white border border-slate-100 flex items-center justify-center"
               >
-                S
+                <img 
+                  src="/logo.png" 
+                  alt="Settleup Logo" 
+                  className="w-full h-full object-contain p-1.5"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "https://api.dicebear.com/7.x/shapes/svg?seed=settleup&backgroundColor=0f172a";
+                  }}
+                />
               </motion.div>
               <span className="text-2xl font-black tracking-tighter text-brand group-hover:text-accent transition-colors">Settleup</span>
             </Link>
@@ -73,18 +82,81 @@ export const Navbar: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-6">
-            <div className="hidden sm:flex items-center gap-4 px-4 py-2 bg-slate-50 rounded-2xl border border-slate-100">
-              {user.photoURL ? (
-                <img src={user.photoURL} alt={user.displayName || 'User'} className="w-8 h-8 rounded-xl shadow-sm" />
-              ) : (
-                <div className="w-8 h-8 bg-accent/10 rounded-xl flex items-center justify-center text-accent">
-                  <span className="text-xs font-bold">{user.displayName?.[0] || 'U'}</span>
+            <div className="relative">
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setShowProfile(!showProfile)}
+                className="hidden sm:flex items-center gap-4 px-4 py-2 bg-slate-50 hover:bg-slate-100 rounded-2xl border border-slate-100 cursor-pointer transition-colors"
+              >
+                {user.photoURL ? (
+                  <img src={user.photoURL} alt={user.displayName || 'User'} className="w-8 h-8 rounded-xl shadow-sm" />
+                ) : (
+                  <div className="w-8 h-8 bg-accent/10 rounded-xl flex items-center justify-center text-accent">
+                    <span className="text-xs font-bold">{user.displayName?.[0] || 'U'}</span>
+                  </div>
+                )}
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold text-brand leading-none">{user.displayName || 'User'}</span>
                 </div>
-              )}
-              <div className="flex flex-col">
-                <span className="text-sm font-bold text-brand leading-none mb-1">{user.displayName || 'User'}</span>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Premium</span>
-              </div>
+              </motion.div>
+
+              <AnimatePresence>
+                {showProfile && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setShowProfile(false)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute right-0 mt-3 w-72 bg-white rounded-3xl shadow-2xl shadow-brand/10 border border-slate-100 p-6 z-50 overflow-hidden"
+                    >
+                      <div className="flex justify-between items-start mb-6">
+                        <h3 className="text-lg font-black text-brand tracking-tight">Profile Details</h3>
+                        <button 
+                          onClick={() => setShowProfile(false)}
+                          className="p-1 hover:bg-slate-50 rounded-lg text-slate-400"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                          <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center text-accent">
+                            <User className="w-5 h-5" />
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Full Name</span>
+                            <span className="text-sm font-bold text-brand">{user.displayName || 'Not set'}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                          <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500">
+                            <Mail className="w-5 h-5" />
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Email Address</span>
+                            <span className="text-sm font-bold text-brand truncate max-w-[160px]">{user.email}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={handleLogout}
+                        className="w-full mt-6 flex items-center justify-center gap-2 py-3 bg-rose-50 text-rose-600 font-bold rounded-2xl hover:bg-rose-100 transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Sign Out
+                      </button>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
             </div>
 
             <motion.button

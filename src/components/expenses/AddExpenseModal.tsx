@@ -5,20 +5,22 @@ import { useStore } from '../../store/useStore';
 import { X, Calculator, Sparkles, Camera, Check, Receipt, CreditCard, PieChart, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { GoogleGenAI } from '@google/genai';
+import { aiService } from '../../services/aiService';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface AddExpenseModalProps {
   groupId: string;
   members: any[];
+  lastExpenses?: any[];
   onClose: () => void;
 }
 
 type SplitMode = 'equal' | 'custom' | 'percent' | 'shares';
 
-export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ groupId, members, onClose }) => {
+export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ groupId, members, lastExpenses = [], onClose }) => {
   const { user } = useStore();
   const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('Other');
   const [amount, setAmount] = useState<number>(0);
   const [paidBy, setPaidBy] = useState(user?.uid || '');
   const [splitMode, setSplitMode] = useState<SplitMode>('equal');
@@ -26,21 +28,52 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ groupId, membe
   const [splitValues, setSplitValues] = useState<{ [key: string]: number }>({});
   const [isAiLoading, setAiLoading] = useState(false);
   const [isLoading, setLoading] = useState(false);
+  const [naturalLanguageInput, setNaturalLanguageInput] = useState('');
+  const [isNlInputOpen, setNlInputOpen] = useState(false);
   const queryClient = useQueryClient();
+
+  React.useEffect(() => {
+    const suggest = async () => {
+      if (!lastExpenses || lastExpenses.length === 0) return;
+      const suggestedIds = await aiService.suggestParticipants(lastExpenses.slice(0, 10), members);
+      if (suggestedIds.length > 0) {
+        setSelectedParticipants(suggestedIds);
+      }
+    };
+    suggest();
+  }, [groupId, members, lastExpenses]);
 
   const handleAiCategorize = async () => {
     if (!description.trim()) return;
     setAiLoading(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `Categorize this expense description into one of these 8 categories: Food, Travel, Accommodation, Entertainment, Utilities, Shopping, Health, Other. Description: "${description}"`,
-      });
-      const category = response.text?.trim() || 'Other';
-      toast.info(`AI suggested category: ${category}`);
+      const suggestedCategory = await aiService.categorizeExpense(description);
+      setCategory(suggestedCategory);
+      toast.info(`AI suggested category: ${suggestedCategory}`);
     } catch (error) {
       console.error(error);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleNaturalLanguageEntry = async () => {
+    if (!naturalLanguageInput.trim()) return;
+    setAiLoading(true);
+    try {
+      const result = await aiService.parseNaturalLanguageExpense(naturalLanguageInput, user, members);
+      if (result) {
+        if (result.amount) setAmount(result.amount);
+        if (result.description) setDescription(result.description);
+        if (result.paid_by) setPaidBy(result.paid_by);
+        if (result.participants && result.participants.length > 0) setSelectedParticipants(result.participants);
+        if (result.split_type) setSplitMode(result.split_type as SplitMode);
+        setNlInputOpen(false);
+        toast.success('Expense details parsed!');
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to parse input.');
     } finally {
       setAiLoading(false);
     }
@@ -55,24 +88,18 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ groupId, membe
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64Data = (reader.result as string).split(',')[1];
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
-        const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash-image',
-          contents: {
-            parts: [
-              { text: 'Extract the merchant name, total amount, and date from this receipt. Return as JSON: { "merchant": string, "total": number, "date": string }' },
-              { inlineData: { data: base64Data, mimeType: file.type } }
-            ]
-          }
-        });
+        const result = await aiService.extractReceiptDetails(base64Data, file.type);
 
-        try {
-          const result = JSON.parse(response.text?.replace(/```json|```/g, '') || '{}');
+        if (result) {
           if (result.merchant) setDescription(result.merchant);
           if (result.total) setAmount(result.total);
+          if (result.items && result.items.length > 0) {
+            // If we have line items, we could potentially switch to 'custom' split
+            // but for now let's just toast them
+            toast.info(`Found ${result.items.length} items on receipt.`);
+          }
           toast.success('Receipt details extracted!');
-        } catch (err) {
-          console.error('Failed to parse AI response', err);
+        } else {
           toast.error('Could not parse receipt details.');
         }
       };
@@ -128,7 +155,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ groupId, membe
         description: description.trim(),
         amount: Number(amount),
         currency: 'INR',
-        category: 'General',
+        category: category,
         split_type: splitMode,
         date: new Date().toISOString(),
         created_at: serverTimestamp(),
@@ -184,15 +211,63 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ groupId, membe
               <p className="text-sm font-medium text-slate-500">Split bills with your friends</p>
             </div>
           </div>
-          <motion.button 
-            whileHover={{ scale: 1.1, rotate: 90 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={onClose} 
-            className="p-3 hover:bg-slate-100 rounded-2xl transition-colors"
-          >
-            <X className="w-6 h-6 text-slate-400" />
-          </motion.button>
+          <div className="flex items-center gap-3">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setNlInputOpen(!isNlInputOpen)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                isNlInputOpen ? 'bg-brand text-white' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
+              }`}
+            >
+              <Sparkles className="w-4 h-4" />
+              Magic Entry
+            </motion.button>
+            <motion.button 
+              whileHover={{ scale: 1.1, rotate: 90 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={onClose} 
+              className="p-3 hover:bg-slate-100 rounded-2xl transition-colors"
+            >
+              <X className="w-6 h-6 text-slate-400" />
+            </motion.button>
+          </div>
         </div>
+
+        <AnimatePresence>
+          {isNlInputOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="px-12 py-8 bg-brand/5 border-b border-brand/10 overflow-hidden"
+            >
+              <div className="space-y-4">
+                <label className="block text-[11px] font-black text-brand uppercase tracking-[0.2em] ml-2">Natural Language Entry</label>
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    value={naturalLanguageInput}
+                    onChange={(e) => setNaturalLanguageInput(e.target.value)}
+                    className="flex-1 px-6 py-4 bg-white border border-brand/20 rounded-2xl focus:ring-4 focus:ring-brand/10 outline-none transition-all font-bold text-slate-900 placeholder:text-slate-300"
+                    placeholder='e.g., "Add 800 split between me and Priya for Swiggy"'
+                    onKeyDown={(e) => e.key === 'Enter' && handleNaturalLanguageEntry()}
+                  />
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleNaturalLanguageEntry}
+                    disabled={isAiLoading || !naturalLanguageInput.trim()}
+                    className="px-8 py-4 bg-brand text-white font-black rounded-2xl shadow-lg shadow-brand/20 disabled:opacity-50"
+                  >
+                    {isAiLoading ? <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full" /> : 'Parse'}
+                  </motion.button>
+                </div>
+                <p className="text-[10px] text-slate-400 font-medium ml-2 italic">AI will automatically fill the form fields for you.</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <form onSubmit={handleSubmit} className="p-12 space-y-10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
@@ -240,6 +315,22 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ groupId, membe
                     className="w-full pl-14 pr-6 py-6 bg-slate-50/50 border border-slate-100 rounded-[32px] text-4xl font-black focus:ring-4 focus:ring-brand/10 focus:bg-white outline-none transition-all text-slate-900 placeholder:text-slate-200"
                     placeholder="0.00"
                   />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="block text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Category</label>
+                <div className="relative">
+                  <PieChart className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full pl-14 pr-10 py-5 bg-slate-50/50 border border-slate-100 rounded-[28px] focus:ring-4 focus:ring-brand/10 focus:bg-white outline-none transition-all appearance-none font-bold text-slate-900"
+                  >
+                    {['Food', 'Travel', 'Accommodation', 'Entertainment', 'Utilities', 'Shopping', 'Health', 'Other'].map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

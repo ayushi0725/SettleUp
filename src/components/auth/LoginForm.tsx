@@ -66,8 +66,16 @@ export const LoginForm: React.FC = () => {
       <div className="w-full max-w-md bg-white rounded-[40px] shadow-2xl p-12 border border-slate-50 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-2 bg-brand"></div>
         <div className="text-center mb-12">
-          <div className="w-20 h-20 bg-brand rounded-[28px] flex items-center justify-center text-white text-4xl font-black mx-auto mb-6 shadow-xl shadow-brand/20">
-            S
+          <div className="w-24 h-24 rounded-[32px] overflow-hidden mx-auto mb-6 shadow-2xl shadow-brand/20 border-4 border-white">
+            <img 
+              src="/logo.png" 
+              alt="Settleup Logo" 
+              className="w-full h-full object-contain p-2"
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = "https://api.dicebear.com/7.x/shapes/svg?seed=settleup&backgroundColor=0f172a";
+              }}
+            />
           </div>
           <h1 className="text-5xl font-black tracking-tighter text-brand mb-3">Settleup</h1>
           <p className="text-slate-400 font-medium tracking-tight">Smart expenses, simplified settlements.</p>
