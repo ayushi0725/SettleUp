@@ -2,7 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
-import firebaseConfigJson from '../firebase-applet-config.json';
+import firebaseConfigJson from './firebase-applet-config.json';
 
 // Use environment variables if available, otherwise fallback to the JSON config
 const firebaseConfig = {
