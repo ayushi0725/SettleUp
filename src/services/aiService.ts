@@ -1,6 +1,15 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+const getApiKey = () => {
+  try {
+    // Vite will replace this string during build
+    return process.env.GEMINI_API_KEY;
+  } catch {
+    return undefined;
+  }
+};
+
+const ai = new GoogleGenAI({ apiKey: getApiKey() || "placeholder-key" });
 
 export const aiService = {
   /**

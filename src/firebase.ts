@@ -15,6 +15,11 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || firebaseConfigJson.measurementId || "",
 };
 
+// Safety check: Ensure at least projectId exists
+if (!firebaseConfig.projectId || firebaseConfig.projectId.includes('TODO')) {
+  console.error('Firebase configuration is missing or invalid. Please check your environment variables or firebase-applet-config.json.');
+}
+
 const firestoreDatabaseId = import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || firebaseConfigJson.firestoreDatabaseId;
 
 const app = initializeApp(firebaseConfig);
