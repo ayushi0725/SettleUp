@@ -46,10 +46,6 @@ export const Navbar: React.FC = () => {
                   alt="Settleup Logo" 
                   className="w-full h-full object-contain p-1.5"
                   referrerPolicy="no-referrer"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = "https://api.dicebear.com/7.x/shapes/svg?seed=settleup&backgroundColor=0f172a";
-                    (e.target as HTMLImageElement).onerror = null; // Prevent infinite loop
-                  }}
                 />
               </motion.div>
               <span className="text-2xl font-black tracking-tighter text-brand group-hover:text-accent transition-colors">Settleup</span>
