@@ -5,6 +5,7 @@ import { useStore } from '../../store/useStore';
 import { LogOut, Users, LayoutDashboard, Menu, User, Mail, ShieldCheck, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
+import logoUrl from '../../assets/logo.png';
 
 export const Navbar: React.FC = () => {
   const { user } = useStore();
@@ -42,7 +43,7 @@ export const Navbar: React.FC = () => {
                 className="w-12 h-12 rounded-xl overflow-hidden shadow-lg shadow-accent/20 bg-white border border-slate-100 flex items-center justify-center"
               >
                 <img 
-                  src="/logo.png" 
+                  src={logoUrl} 
                   alt="Settleup Logo" 
                   className="w-full h-full object-contain p-1.5"
                   referrerPolicy="no-referrer"
