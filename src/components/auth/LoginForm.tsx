@@ -5,7 +5,6 @@ import { LogIn, Mail, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
-import logoUrl from '../../assets/logo.png';
 
 export const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -69,7 +68,7 @@ export const LoginForm: React.FC = () => {
         <div className="text-center mb-12">
           <div className="w-24 h-24 rounded-[32px] overflow-hidden mx-auto mb-6 shadow-2xl shadow-brand/20 border-4 border-white">
             <img 
-              src={logoUrl} 
+              src="/logo.png?v=2" 
               alt="Settleup Logo" 
               className="w-full h-full object-contain p-2"
               referrerPolicy="no-referrer"
